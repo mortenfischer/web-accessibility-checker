@@ -3,11 +3,7 @@ import axe, { type AxeResults } from "axe-core";
 const CORS_PROXY = "https://api.allorigins.win/raw?url=";
 
 export async function fetchHtml(url: string): Promise<string> {
-  let formatted = url.trim();
-  if (!formatted.startsWith("http://") && !formatted.startsWith("https://")) {
-    formatted = `https://${formatted}`;
-  }
-  const response = await fetch(`${CORS_PROXY}${encodeURIComponent(formatted)}`);
+  const response = await fetch(`${CORS_PROXY}${encodeURIComponent(url)}`);
   if (!response.ok) {
     throw new Error(`Failed to fetch page (${response.status})`);
   }
