@@ -2,31 +2,64 @@ import axe, { type AxeResults } from "axe-core";
 
 const CORS_PROXY = "https://api.allorigins.win/raw?url=";
 
-export async function fetchHtml(url: string): Promise<string> {
-  const attempts = [url];
+export interface FetchAttempt {
+  url: string;
+  error: string;
+}
 
-  // If the URL doesn't already have www., add a www. retry variant
+export interface FetchResult {
+  html: string;
+  attempts: FetchAttempt[];
+  successUrl: string;
+}
+
+export class FetchError extends Error {
+  attempts: FetchAttempt[];
+  constructor(message: string, attempts: FetchAttempt[]) {
+    super(message);
+    this.name = "FetchError";
+    this.attempts = attempts;
+  }
+}
+
+export async function fetchHtml(url: string): Promise<FetchResult> {
+  const urls = [url];
+
   const urlObj = new URL(url);
   if (!urlObj.hostname.startsWith("www.")) {
     const wwwUrl = `${urlObj.protocol}//www.${urlObj.hostname}${urlObj.pathname}${urlObj.search}${urlObj.hash}`;
-    attempts.push(wwwUrl);
+    urls.push(wwwUrl);
   }
 
-  let lastError: Error | null = null;
-  for (const attempt of attempts) {
+  const attempts: FetchAttempt[] = [];
+
+  for (const attempt of urls) {
     try {
       const response = await fetch(`${CORS_PROXY}${encodeURIComponent(attempt)}`);
       if (!response.ok) {
-        lastError = new Error(`Failed to fetch page (${response.status})`);
+        attempts.push({ url: attempt, error: `HTTP ${response.status} ${response.statusText || "error"}` });
         continue;
       }
-      return await response.text();
+      const html = await response.text();
+      if (!html || html.trim().length === 0) {
+        attempts.push({ url: attempt, error: "Empty response body" });
+        continue;
+      }
+      return { html, attempts, successUrl: attempt };
     } catch (err) {
-      lastError = err instanceof Error ? err : new Error("Failed to fetch");
+      const msg = err instanceof TypeError
+        ? "Network error — DNS resolution failed or site unreachable"
+        : err instanceof Error
+          ? err.message
+          : "Unknown fetch error";
+      attempts.push({ url: attempt, error: msg });
     }
   }
 
-  throw lastError ?? new Error("Failed to fetch page");
+  throw new FetchError(
+    `All ${attempts.length} fetch attempt(s) failed`,
+    attempts,
+  );
 }
 
 export async function runAxeScan(html: string): Promise<AxeResults> {

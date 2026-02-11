@@ -4,7 +4,7 @@ import { ScannerForm } from "@/components/ScannerForm";
 import { ResultsReport } from "@/components/ResultsReport";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { fetchHtml, runAxeScan } from "@/lib/scanner";
+import { fetchHtml, runAxeScan, FetchError, type FetchAttempt } from "@/lib/scanner";
 import { Shield } from "lucide-react";
 
 const Index = () => {
@@ -12,6 +12,7 @@ const Index = () => {
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<AxeResults | null>(null);
   const [scannedUrl, setScannedUrl] = useState("");
+  const [fetchError, setFetchError] = useState<{ message: string; attempts: FetchAttempt[] } | null>(null);
   const { toast } = useToast();
 
   const handleScan = async (url: string) => {
@@ -19,13 +20,14 @@ const Index = () => {
     setProgress(10);
     setResults(null);
     setScannedUrl(url);
+    setFetchError(null);
 
     try {
       setProgress(30);
-      const html = await fetchHtml(url);
+      const fetchResult = await fetchHtml(url);
 
       setProgress(60);
-      const axeResults = await runAxeScan(html);
+      const axeResults = await runAxeScan(fetchResult.html);
 
       setProgress(100);
       setResults(axeResults);
@@ -36,6 +38,14 @@ const Index = () => {
       });
     } catch (err) {
       console.error("Scan failed:", err);
+      if (err instanceof FetchError) {
+        setFetchError({ message: err.message, attempts: err.attempts });
+      } else {
+        setFetchError({
+          message: err instanceof Error ? err.message : "An unknown error occurred",
+          attempts: [],
+        });
+      }
       toast({
         title: "Scan failed",
         description: err instanceof Error ? err.message : "An unknown error occurred",
@@ -59,7 +69,7 @@ const Index = () => {
         </p>
       </header>
 
-      <ScannerForm onScan={handleScan} isLoading={isLoading} />
+      <ScannerForm onScan={handleScan} isLoading={isLoading} fetchError={fetchError} />
 
       {isLoading && (
         <div className="mt-8 w-full max-w-2xl space-y-2">
