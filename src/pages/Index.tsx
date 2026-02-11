@@ -5,7 +5,7 @@ import { ResultsReport } from "@/components/ResultsReport";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { fetchHtml, runAxeScan, FetchError, type FetchAttempt } from "@/lib/scanner";
-import { Shield } from "lucide-react";
+import { Shield, CheckCircle2, AlertTriangle, Info } from "lucide-react";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -82,6 +82,63 @@ const Index = () => {
                 : "Running accessibility analysis…"}
           </p>
         </div>
+      )}
+
+      {!results && !isLoading && (
+        <section className="mt-12 w-full max-w-3xl space-y-8">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-lg border bg-card p-5 space-y-2">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-sm">WCAG 2.1 Coverage</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Checks against WCAG 2.1 Level A, AA, and AAA success criteria plus best-practice rules powered by axe-core.
+              </p>
+            </div>
+            <div className="rounded-lg border bg-card p-5 space-y-2">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-sm">Detailed Reports</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Results are grouped by WCAG criterion with severity badges, affected selectors, remediation guidance, and PDF export.
+              </p>
+            </div>
+            <div className="rounded-lg border bg-card p-5 space-y-2">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-sm">Automatic Retries</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                If a URL fails to load, the scanner automatically retries with the www. prefix and shows detailed error info.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border/60 bg-muted/30 p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              <h3 className="font-semibold text-sm">Good to know</h3>
+            </div>
+            <ul className="space-y-2 text-xs text-muted-foreground leading-relaxed">
+              <li className="flex items-start gap-2">
+                <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <span><strong>Static HTML only</strong> — The scanner fetches the server-rendered HTML. Single-page apps (React, Vue, Angular) that render content via JavaScript will only have their initial HTML shell analyzed, not the fully rendered page.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <span><strong>No login-protected pages</strong> — Pages behind authentication cannot be scanned since the fetcher has no access to your session or cookies.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <span><strong>CORS proxy</strong> — HTML is fetched through a public CORS proxy. Some sites may block proxy requests or return different content than what a browser sees.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <span><strong>Single page scan</strong> — Only the specific URL you enter is scanned. It does not crawl links or scan multiple pages automatically.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <span><strong>Automated checks only</strong> — Automated tools can catch roughly 30–40% of WCAG issues. Manual testing (keyboard navigation, screen reader usage, cognitive review) is still essential for full compliance.</span>
+              </li>
+            </ul>
+          </div>
+        </section>
       )}
 
       {results && (
