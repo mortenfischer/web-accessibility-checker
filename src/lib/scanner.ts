@@ -15,36 +15,20 @@ export async function fetchHtml(url: string): Promise<string> {
 }
 
 export async function runAxeScan(html: string): Promise<AxeResults> {
-  return new Promise((resolve, reject) => {
-    const iframe = document.createElement("iframe");
-    iframe.setAttribute("sandbox", "allow-same-origin");
-    iframe.style.cssText = "position:fixed;left:-9999px;width:1024px;height:768px;opacity:0;pointer-events:none;";
-    document.body.appendChild(iframe);
+  const container = document.createElement("div");
+  container.style.cssText = "position:fixed;left:-9999px;width:1024px;height:768px;opacity:0;pointer-events:none;";
+  container.innerHTML = html;
+  document.body.appendChild(container);
 
-    iframe.onload = async () => {
-      try {
-        const doc = iframe.contentDocument;
-        if (!doc) throw new Error("Cannot access iframe document");
-
-        const results = await axe.run(doc.documentElement, {
-          runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag2aaa", "wcag21a", "wcag21aa", "best-practice"] },
-          resultTypes: ["violations", "passes", "incomplete"],
-        });
-        resolve(results);
-      } catch (err) {
-        reject(err);
-      } finally {
-        document.body.removeChild(iframe);
-      }
-    };
-
-    iframe.onerror = () => {
-      document.body.removeChild(iframe);
-      reject(new Error("Failed to load content in iframe"));
-    };
-
-    iframe.srcdoc = html;
-  });
+  try {
+    const results = await axe.run(container, {
+      runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag2aaa", "wcag21a", "wcag21aa", "best-practice"] },
+      resultTypes: ["violations", "passes", "incomplete"],
+    });
+    return results;
+  } finally {
+    document.body.removeChild(container);
+  }
 }
 
 export type SeverityLevel = "critical" | "serious" | "moderate" | "minor";
