@@ -4,13 +4,13 @@ import { ScannerForm } from "@/components/ScannerForm";
 import { ResultsReport } from "@/components/ResultsReport";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { fetchHtml, runAxeScan, FetchError, type FetchAttempt } from "@/lib/scanner";
-import { Shield, CheckCircle2, AlertTriangle, Info, ArrowRight } from "lucide-react";
+import { fetchHtml, runFullScan, FetchError, type FetchAttempt, type CombinedResults } from "@/lib/scanner";
+import { Shield, CheckCircle2, AlertTriangle, Info } from "lucide-react";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [results, setResults] = useState<AxeResults | null>(null);
+  const [combinedResults, setCombinedResults] = useState<CombinedResults | null>(null);
   const [scannedUrl, setScannedUrl] = useState("");
   const [fetchError, setFetchError] = useState<{ message: string; attempts: FetchAttempt[] } | null>(null);
   const { toast } = useToast();
@@ -18,7 +18,7 @@ const Index = () => {
   const handleScan = async (url: string) => {
     setIsLoading(true);
     setProgress(10);
-    setResults(null);
+    setCombinedResults(null);
     setScannedUrl(url);
     setFetchError(null);
 
@@ -27,14 +27,15 @@ const Index = () => {
       const fetchResult = await fetchHtml(url);
 
       setProgress(60);
-      const axeResults = await runAxeScan(fetchResult.html);
+      const results = await runFullScan(fetchResult.html);
 
       setProgress(100);
-      setResults(axeResults);
+      setCombinedResults(results);
 
+      const totalViolations = results.taggedViolations.length;
       toast({
         title: "Scan complete",
-        description: `Found ${axeResults.violations.length} violation${axeResults.violations.length !== 1 ? "s" : ""} and ${axeResults.passes.length} passes.`,
+        description: `Found ${totalViolations} violation${totalViolations !== 1 ? "s" : ""} (${results.axeResults.violations.length} axe + ${results.customViolations.length} custom checks) and ${results.axeResults.passes.length} passes.`,
       });
     } catch (err) {
       console.error("Scan failed:", err);
@@ -86,16 +87,15 @@ const Index = () => {
               ? "Fetching page…"
               : progress < 60
                 ? "Loading content…"
-                : "Running accessibility analysis…"}
+                : "Running accessibility analysis (axe-core + custom checks)…"}
           </p>
         </div>
       )}
 
       {/* Info Section */}
-      {!results && !isLoading && (
+      {!combinedResults && !isLoading && (
         <section className="w-full px-4 py-16">
           <div className="mx-auto max-w-4xl space-y-12">
-            {/* Features */}
             <div className="grid gap-6 sm:grid-cols-3">
               {[
                 {
@@ -103,12 +103,12 @@ const Index = () => {
                   desc: "Checks against Level A, AA, and AAA success criteria plus best-practice rules powered by axe-core.",
                 },
                 {
-                  title: "Detailed Reports",
-                  desc: "Results grouped by WCAG criterion with severity badges, affected selectors, remediation guidance, and PDF export.",
+                  title: "Contrast & Focus Checks",
+                  desc: "Custom color contrast analysis and focus indicator detection supplement axe-core for broader coverage.",
                 },
                 {
-                  title: "Automatic Retries",
-                  desc: "If a URL fails to load, the scanner automatically retries with the www. prefix and shows detailed error info.",
+                  title: "Cross-Referenced Results",
+                  desc: "Findings are tagged by source engine so you can see what both scanners found vs. unique findings.",
                 },
               ].map((f) => (
                 <div
@@ -126,7 +126,6 @@ const Index = () => {
               ))}
             </div>
 
-            {/* Caveats */}
             <div className="rounded-2xl border border-border/60 bg-muted/40 p-6 sm:p-8">
               <div className="flex items-center gap-2 mb-5">
                 <AlertTriangle className="h-4 w-4 text-muted-foreground" />
@@ -134,30 +133,12 @@ const Index = () => {
               </div>
               <div className="grid gap-4 sm:grid-cols-2" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                 {[
-                  {
-                    title: "Static HTML only",
-                    desc: "SPA content rendered via JavaScript won't be analyzed — only the initial server-rendered HTML.",
-                  },
-                  {
-                    title: "No login-protected pages",
-                    desc: "Pages behind authentication can't be scanned since the fetcher has no access to your session.",
-                  },
-                  {
-                    title: "CORS proxy",
-                    desc: "HTML is fetched through a public proxy. Some sites may block requests or return different content.",
-                  },
-                  {
-                    title: "Single page scan",
-                    desc: "Only the specific URL you enter is scanned. It does not crawl or scan multiple pages.",
-                  },
-                  {
-                    title: "Automated checks only",
-                    desc: "Automated tools catch roughly 30–40% of WCAG issues. Manual testing remains essential.",
-                  },
-                  {
-                    title: "Open source engine",
-                    desc: "Powered by axe-core, the industry-leading open-source accessibility testing library.",
-                  },
+                  { title: "Static HTML only", desc: "SPA content rendered via JavaScript won't be analyzed — only the initial server-rendered HTML." },
+                  { title: "No login-protected pages", desc: "Pages behind authentication can't be scanned since the fetcher has no access to your session." },
+                  { title: "CORS proxy", desc: "HTML is fetched through a public proxy. Some sites may block requests or return different content." },
+                  { title: "Single page scan", desc: "Only the specific URL you enter is scanned. It does not crawl or scan multiple pages." },
+                  { title: "Automated checks only", desc: "Automated tools catch roughly 30–40% of WCAG issues. Manual testing remains essential." },
+                  { title: "Open source engine", desc: "Powered by axe-core plus custom contrast/focus checks for broader WCAG coverage." },
                 ].map((c) => (
                   <div key={c.title} className="flex items-start gap-3">
                     <Info className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
@@ -174,10 +155,10 @@ const Index = () => {
       )}
 
       {/* Results */}
-      {results && (
+      {combinedResults && (
         <div className="w-full px-4 py-10">
           <div className="mx-auto flex max-w-4xl justify-center">
-            <ResultsReport results={results} url={scannedUrl} />
+            <ResultsReport combinedResults={combinedResults} url={scannedUrl} />
           </div>
         </div>
       )}

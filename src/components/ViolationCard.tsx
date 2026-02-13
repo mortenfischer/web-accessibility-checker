@@ -1,12 +1,13 @@
-import type { Result } from "axe-core";
 import { ExternalLink } from "lucide-react";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { SeverityBadge, WcagLevelBadge } from "./SeverityBadge";
+import { SourceBadge } from "./SourceBadge";
 import { extractWcagCriteria, extractWcagLevel } from "@/lib/wcag-mapping";
+import type { TaggedViolation } from "@/lib/scanner";
 
 interface ViolationCardProps {
-  violation: Result;
+  violation: TaggedViolation;
   index: number;
 }
 
@@ -19,6 +20,7 @@ export function ViolationCard({ violation, index }: ViolationCardProps) {
       <AccordionTrigger className="hover:no-underline">
         <div className="flex flex-1 flex-wrap items-center gap-2 text-left">
           <SeverityBadge impact={violation.impact} />
+          <SourceBadge sources={violation.source} />
           {wcagLevel && <WcagLevelBadge level={wcagLevel} />}
           {wcagCriteria.slice(0, 2).map((c) => (
             <Badge key={c.id} variant="outline" className="text-xs font-mono rounded-full">

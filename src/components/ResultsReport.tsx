@@ -7,62 +7,56 @@ import { Badge } from "@/components/ui/badge";
 import { SummaryDashboard } from "./SummaryDashboard";
 import { ViolationCard } from "./ViolationCard";
 import { generatePdfReport } from "@/lib/pdf-report";
-import { extractWcagCriteria, extractWcagLevel } from "@/lib/wcag-mapping";
-import { getSeverityOrder } from "@/lib/scanner";
+import { extractWcagLevel } from "@/lib/wcag-mapping";
+import { getSeverityOrder, type CombinedResults, type TaggedViolation } from "@/lib/scanner";
 
 interface ResultsReportProps {
-  results: AxeResults;
+  combinedResults: CombinedResults;
   url: string;
 }
 
 type SeverityFilter = "all" | "critical" | "serious" | "moderate" | "minor";
 type WcagFilter = "all" | "A" | "AA" | "AAA";
-type GroupBy = "severity" | "wcag";
+type SourceFilter = "all" | "axe" | "custom" | "both";
 
-export function ResultsReport({ results, url }: ResultsReportProps) {
+export function ResultsReport({ combinedResults, url }: ResultsReportProps) {
+  const { axeResults, taggedViolations } = combinedResults;
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
   const [wcagFilter, setWcagFilter] = useState<WcagFilter>("all");
-  const [groupBy, setGroupBy] = useState<GroupBy>("severity");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
 
   const filteredViolations = useMemo(() => {
-    return results.violations
+    return taggedViolations
       .filter((v) => severityFilter === "all" || v.impact === severityFilter)
       .filter((v) => {
         if (wcagFilter === "all") return true;
         const level = extractWcagLevel(v.tags);
         return level === wcagFilter;
       })
+      .filter((v) => {
+        if (sourceFilter === "all") return true;
+        if (sourceFilter === "both") return v.source.length > 1;
+        if (sourceFilter === "axe") return v.source.includes("axe") && v.source.length === 1;
+        if (sourceFilter === "custom") return !v.source.includes("axe");
+        return true;
+      })
       .sort((a, b) => getSeverityOrder(a.impact) - getSeverityOrder(b.impact));
-  }, [results.violations, severityFilter, wcagFilter]);
+  }, [taggedViolations, severityFilter, wcagFilter, sourceFilter]);
 
-  const groupedByWcag = useMemo(() => {
-    if (groupBy !== "wcag") return null;
-    const groups: Record<string, typeof filteredViolations> = {};
-    filteredViolations.forEach((v) => {
-      const criteria = extractWcagCriteria(v.tags);
-      if (criteria.length === 0) {
-        const key = "Other";
-        (groups[key] ??= []).push(v);
-      } else {
-        criteria.forEach((c) => {
-          const key = `${c.id} ${c.name}`;
-          (groups[key] ??= []).push(v);
-        });
-      }
-    });
-    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  }, [filteredViolations, groupBy]);
+  const bothCount = taggedViolations.filter(v => v.source.length > 1).length;
+  const axeOnlyCount = taggedViolations.filter(v => v.source.includes("axe") && v.source.length === 1).length;
+  const customOnlyCount = taggedViolations.filter(v => !v.source.includes("axe")).length;
 
   return (
     <div className="w-full max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl">Scan Results</h2>
-        <Button variant="outline" className="rounded-full" onClick={() => generatePdfReport(results, url)}>
+        <Button variant="outline" className="rounded-full" onClick={() => generatePdfReport(axeResults, url)}>
           <Download className="mr-2 h-4 w-4" /> <span style={{ fontFamily: "'DM Sans', sans-serif" }}>Download PDF</span>
         </Button>
       </div>
 
-      <SummaryDashboard results={results} />
+      <SummaryDashboard results={axeResults} customViolationCount={combinedResults.customViolations.length} overlapCount={bothCount} />
 
       {/* Filters */}
       <div className="space-y-3 rounded-xl border bg-card p-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -99,15 +93,20 @@ export function ResultsReport({ results, url }: ResultsReportProps) {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <span className="text-xs font-medium text-muted-foreground self-center">Group by:</span>
-          {(["severity", "wcag"] as GroupBy[]).map((g) => (
+          <span className="text-xs font-medium text-muted-foreground self-center">Source:</span>
+          {([
+            { key: "all" as SourceFilter, label: "All", count: taggedViolations.length },
+            { key: "axe" as SourceFilter, label: "axe-core only", count: axeOnlyCount },
+            { key: "custom" as SourceFilter, label: "Custom only", count: customOnlyCount },
+            { key: "both" as SourceFilter, label: "Both scanners", count: bothCount },
+          ]).map(({ key, label, count }) => (
             <Badge
-              key={g}
-              variant={groupBy === g ? "default" : "outline"}
-              className="cursor-pointer capitalize rounded-full"
-              onClick={() => setGroupBy(g)}
+              key={key}
+              variant={sourceFilter === key ? "default" : "outline"}
+              className="cursor-pointer rounded-full"
+              onClick={() => setSourceFilter(key)}
             >
-              {g === "wcag" ? "WCAG Criterion" : g}
+              {label} ({count})
             </Badge>
           ))}
         </div>
@@ -117,23 +116,10 @@ export function ResultsReport({ results, url }: ResultsReportProps) {
       {filteredViolations.length === 0 ? (
         <div className="rounded-xl border bg-card p-8 text-center" style={{ fontFamily: "'DM Sans', sans-serif" }}>
           <p className="text-muted-foreground">
-            {results.violations.length === 0
+            {taggedViolations.length === 0
               ? "🎉 No violations found!"
               : "No violations match the current filters."}
           </p>
-        </div>
-      ) : groupBy === "wcag" && groupedByWcag ? (
-        <div className="space-y-6">
-          {groupedByWcag.map(([criterion, violations]) => (
-            <div key={criterion}>
-              <h3 className="mb-2 text-lg">{criterion}</h3>
-              <Accordion type="multiple" className="space-y-2">
-                {violations.map((v, i) => (
-                  <ViolationCard key={`${criterion}-${v.id}-${i}`} violation={v} index={i} />
-                ))}
-              </Accordion>
-            </div>
-          ))}
         </div>
       ) : (
         <Accordion type="multiple" className="space-y-2">
