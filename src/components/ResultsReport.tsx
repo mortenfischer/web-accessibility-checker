@@ -9,7 +9,6 @@ import { ViolationCard } from "./ViolationCard";
 import { generatePdfReport } from "@/lib/pdf-report";
 import { extractWcagCriteria, extractWcagLevel } from "@/lib/wcag-mapping";
 import { getSeverityOrder } from "@/lib/scanner";
-import { cn } from "@/lib/utils";
 
 interface ResultsReportProps {
   results: AxeResults;
@@ -57,16 +56,16 @@ export function ResultsReport({ results, url }: ResultsReportProps) {
   return (
     <div className="w-full max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Scan Results</h2>
-        <Button variant="outline" onClick={() => generatePdfReport(results, url)}>
-          <Download className="mr-2 h-4 w-4" /> Download PDF
+        <h2 className="text-2xl">Scan Results</h2>
+        <Button variant="outline" className="rounded-full" onClick={() => generatePdfReport(results, url)}>
+          <Download className="mr-2 h-4 w-4" /> <span style={{ fontFamily: "'DM Sans', sans-serif" }}>Download PDF</span>
         </Button>
       </div>
 
       <SummaryDashboard results={results} />
 
       {/* Filters */}
-      <div className="space-y-3 rounded-lg border bg-card p-4">
+      <div className="space-y-3 rounded-xl border bg-card p-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Filter className="h-4 w-4" /> Filters
         </div>
@@ -77,7 +76,7 @@ export function ResultsReport({ results, url }: ResultsReportProps) {
             <Badge
               key={s}
               variant={severityFilter === s ? "default" : "outline"}
-              className="cursor-pointer capitalize"
+              className="cursor-pointer capitalize rounded-full"
               onClick={() => setSeverityFilter(s)}
             >
               {s}
@@ -91,7 +90,7 @@ export function ResultsReport({ results, url }: ResultsReportProps) {
             <Badge
               key={w}
               variant={wcagFilter === w ? "default" : "outline"}
-              className="cursor-pointer"
+              className="cursor-pointer rounded-full"
               onClick={() => setWcagFilter(w)}
             >
               {w === "all" ? "All" : `Level ${w}`}
@@ -105,7 +104,7 @@ export function ResultsReport({ results, url }: ResultsReportProps) {
             <Badge
               key={g}
               variant={groupBy === g ? "default" : "outline"}
-              className="cursor-pointer capitalize"
+              className="cursor-pointer capitalize rounded-full"
               onClick={() => setGroupBy(g)}
             >
               {g === "wcag" ? "WCAG Criterion" : g}
@@ -116,7 +115,7 @@ export function ResultsReport({ results, url }: ResultsReportProps) {
 
       {/* Violations */}
       {filteredViolations.length === 0 ? (
-        <div className="rounded-lg border bg-card p-8 text-center">
+        <div className="rounded-xl border bg-card p-8 text-center" style={{ fontFamily: "'DM Sans', sans-serif" }}>
           <p className="text-muted-foreground">
             {results.violations.length === 0
               ? "🎉 No violations found!"
@@ -127,7 +126,7 @@ export function ResultsReport({ results, url }: ResultsReportProps) {
         <div className="space-y-6">
           {groupedByWcag.map(([criterion, violations]) => (
             <div key={criterion}>
-              <h3 className="mb-2 text-lg font-semibold">{criterion}</h3>
+              <h3 className="mb-2 text-lg">{criterion}</h3>
               <Accordion type="multiple" className="space-y-2">
                 {violations.map((v, i) => (
                   <ViolationCard key={`${criterion}-${v.id}-${i}`} violation={v} index={i} />
