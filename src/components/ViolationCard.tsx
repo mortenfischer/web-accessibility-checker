@@ -15,25 +15,24 @@ export function ViolationCard({ violation, index }: ViolationCardProps) {
   const wcagLevel = extractWcagLevel(violation.tags);
 
   return (
-    <AccordionItem value={`violation-${index}`} className="rounded-lg border bg-card px-4">
+    <AccordionItem value={`violation-${index}`} className="rounded-xl border bg-card px-5">
       <AccordionTrigger className="hover:no-underline">
         <div className="flex flex-1 flex-wrap items-center gap-2 text-left">
           <SeverityBadge impact={violation.impact} />
           {wcagLevel && <WcagLevelBadge level={wcagLevel} />}
           {wcagCriteria.slice(0, 2).map((c) => (
-            <Badge key={c.id} variant="outline" className="text-xs font-mono">
+            <Badge key={c.id} variant="outline" className="text-xs font-mono rounded-full">
               {c.id}
             </Badge>
           ))}
-          <span className="font-medium">{violation.help}</span>
-          <span className="ml-auto text-xs text-muted-foreground">
+          <span className="font-medium" style={{ fontFamily: "'DM Sans', sans-serif" }}>{violation.help}</span>
+          <span className="ml-auto text-xs text-muted-foreground" style={{ fontFamily: "'DM Sans', sans-serif" }}>
             {violation.nodes.length} element{violation.nodes.length !== 1 ? "s" : ""}
           </span>
         </div>
       </AccordionTrigger>
       <AccordionContent>
-        <div className="space-y-4 pb-2">
-          {/* WCAG Criteria */}
+        <div className="space-y-4 pb-2" style={{ fontFamily: "'DM Sans', sans-serif" }}>
           {wcagCriteria.length > 0 && (
             <div className="space-y-1">
               <h4 className="text-sm font-semibold text-muted-foreground">WCAG Success Criteria</h4>
@@ -44,7 +43,7 @@ export function ViolationCard({ violation, index }: ViolationCardProps) {
                     href={c.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-accent transition-colors"
+                    className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs hover:bg-accent transition-colors"
                   >
                     <span className="font-mono font-bold">{c.id}</span>
                     <span>{c.name}</span>
@@ -56,13 +55,11 @@ export function ViolationCard({ violation, index }: ViolationCardProps) {
             </div>
           )}
 
-          {/* Description */}
           <div>
             <h4 className="text-sm font-semibold text-muted-foreground">Description</h4>
             <p className="text-sm">{violation.description}</p>
           </div>
 
-          {/* Remediation */}
           {violation.helpUrl && (
             <div>
               <h4 className="text-sm font-semibold text-muted-foreground">How to Fix</h4>
@@ -77,14 +74,13 @@ export function ViolationCard({ violation, index }: ViolationCardProps) {
             </div>
           )}
 
-          {/* Affected Elements */}
           <div>
             <h4 className="text-sm font-semibold text-muted-foreground">
               Affected Elements ({violation.nodes.length})
             </h4>
             <div className="mt-1 max-h-48 space-y-2 overflow-y-auto">
               {violation.nodes.slice(0, 10).map((node, i) => (
-                <div key={i} className="rounded bg-muted p-2">
+                <div key={i} className="rounded-lg bg-muted p-2.5">
                   <code className="block text-xs break-all">{node.target.join(" > ")}</code>
                   {node.failureSummary && (
                     <p className="mt-1 text-xs text-muted-foreground">{node.failureSummary}</p>

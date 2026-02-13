@@ -33,11 +33,11 @@ export function ScannerForm({ onScan, isLoading, fetchError }: ScannerFormProps)
   };
 
   return (
-    <div className="w-full max-w-2xl space-y-3">
-      <form onSubmit={handleSubmit} className="flex w-full gap-3">
-        <div className="flex flex-1 overflow-hidden rounded-md border border-input focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ring-offset-background">
+    <div className="mx-auto w-full max-w-xl space-y-3">
+      <form onSubmit={handleSubmit} className="flex w-full gap-2">
+        <div className="flex flex-1 overflow-hidden rounded-full border border-input bg-card shadow-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ring-offset-background">
           <Select value={protocol} onValueChange={setProtocol} disabled={isLoading}>
-            <SelectTrigger className="h-12 w-[110px] shrink-0 rounded-none border-0 border-r border-input focus:ring-0 focus:ring-offset-0 text-sm text-muted-foreground">
+            <SelectTrigger className="h-12 w-[100px] shrink-0 rounded-none border-0 border-r border-input focus:ring-0 focus:ring-offset-0 text-sm text-muted-foreground">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -50,22 +50,28 @@ export function ScannerForm({ onScan, isLoading, fetchError }: ScannerFormProps)
             value={url}
             onChange={(e) => handleUrlChange(e.target.value)}
             placeholder="example.com"
-            className="h-12 flex-1 rounded-none border-0 text-base focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="h-12 flex-1 rounded-none border-0 text-base focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
             disabled={isLoading}
           />
         </div>
-        <Button type="submit" size="lg" disabled={isLoading || !url.trim()} className="h-12 px-6">
+        <Button
+          type="submit"
+          size="lg"
+          disabled={isLoading || !url.trim()}
+          className="h-12 rounded-full px-6 shadow-sm"
+        >
           {isLoading ? (
             <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
             <Search className="h-5 w-5" />
           )}
-          <span className="ml-2">{isLoading ? "Scanning…" : "Scan"}</span>
+          <span className="ml-1.5" style={{ fontFamily: "'DM Sans', sans-serif" }}>{isLoading ? "Scanning…" : "Scan"}</span>
         </Button>
       </form>
 
       {fetchError && (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 space-y-2">
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 space-y-2" style={{ fontFamily: "'DM Sans', sans-serif" }}>
           <div className="flex items-center gap-2 text-destructive font-medium text-sm">
             <AlertCircle className="h-4 w-4 shrink-0" />
             {fetchError.message}

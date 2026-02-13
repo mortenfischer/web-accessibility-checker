@@ -11,7 +11,7 @@ const severityStyles: Record<string, string> = {
 export function SeverityBadge({ impact }: { impact: string | undefined }) {
   const level = impact || "minor";
   return (
-    <Badge className={cn("text-xs font-semibold uppercase", severityStyles[level] || severityStyles.minor)}>
+    <Badge className={cn("text-xs font-semibold uppercase rounded-full", severityStyles[level] || severityStyles.minor)}>
       {level}
     </Badge>
   );
@@ -25,7 +25,7 @@ const wcagLevelStyles: Record<string, string> = {
 
 export function WcagLevelBadge({ level }: { level: "A" | "AA" | "AAA" }) {
   return (
-    <Badge className={cn("text-xs font-bold", wcagLevelStyles[level])}>
+    <Badge className={cn("text-xs font-bold rounded-full", wcagLevelStyles[level])}>
       Level {level}
     </Badge>
   );
